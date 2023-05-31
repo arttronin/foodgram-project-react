@@ -21,3 +21,27 @@ python -m venv venv
 ```
 source /venv/Scripts/activate 
 ```
+### Устанавливаем docker и docker-compose:
+```
+sudo apt install docker.io
+sudo apt install docker-compose
+```
+### Cоздаем .env файл и вписываем данные:
+```
+DB_ENGINE=<django.db.backends.postgresql>
+DB_NAME=<имя базы данных postgres>
+DB_USER=<пользователь бд>
+DB_PASSWORD=<пароль>
+DB_HOST=<db>
+DB_PORT=<5432>
+SECRET_KEY=<секретный ключ проекта django>
+```
+
+### Технологии:
+Python 3.11
+Django 3.2
+djangorestframework 3.14
+nginx
+gunicorn
+docker-compose
+workflow
