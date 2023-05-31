@@ -51,3 +51,5 @@ gunicorn
 docker-compose
 
 workflow
+### Разработчик 
+Тронин Артём
