@@ -39,9 +39,15 @@ SECRET_KEY=<секретный ключ проекта django>
 
 ### Технологии:
 Python 3.11
+
 Django 3.2
+
 djangorestframework 3.14
+
 nginx
+
 gunicorn
+
 docker-compose
+
 workflow
