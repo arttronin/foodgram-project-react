@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
-from django.core.validators import (
-    MaxValueValidator, MinValueValidator)
+from django.core.validators import (MinValueValidator)
 from django.db import models
+from django.db.models import UniqueConstraint
 
 User = get_user_model()
 
@@ -105,10 +105,6 @@ class QuantityIngredient(models.Model):
                 MIN_INGREDIENT,
                 message='Количество ингредиента должно быть больше 0!'
             ),
-            MaxValueValidator(
-                MAX_INGREDIENT,
-                message='Количество ингредиентов не должно превышать 50!'
-            )
         ],
     )
 
@@ -125,7 +121,6 @@ class ShoppingList(models.Model):
         verbose_name="Пользователь",
         on_delete=models.CASCADE,
         related_name="shopping_list",
-        null=True,
     )
     recipe = models.ForeignKey(
         Recipe,
@@ -137,6 +132,11 @@ class ShoppingList(models.Model):
     class Meta:
         verbose_name = "Список покупок"
         verbose_name_plural = "Список покупок"
+        constraints = [
+            UniqueConstraint(
+                fields=['user', 'recipe'], name='unique_shoping_list'
+            )
+        ]
 
     def __str__(self):
         return f'{self.user} добавил "{self.recipe}" в Список покупок'
@@ -146,7 +146,6 @@ class FavoriteRecipe(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        null=True,
         related_name="favorite_recipe",
         verbose_name="Пользователь",
     )
@@ -160,6 +159,11 @@ class FavoriteRecipe(models.Model):
     class Meta:
         verbose_name = "Избранное"
         verbose_name_plural = "Избранное"
+        constraints = [
+            UniqueConstraint(
+                fields=['user', 'recipe'], name='unique_favorite_recipe'
+            )
+        ]
 
     def __str__(self):
         return f'{self.user} добавил "{self.recipe}" в Избранное'

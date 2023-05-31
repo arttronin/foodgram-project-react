@@ -5,12 +5,18 @@ from .models import (FavoriteRecipe, Ingredient, QuantityIngredient, Recipe,
                      ShoppingList, Tag)
 
 
+class QuantityIngredientInline(admin.StackedInline):
+    model = QuantityIngredient
+    min_num = 1
+
+
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     """Отображение модели рецептов в интерфейсе админки"""
     list_display = ('name', 'id', 'author')
     readonly_fields = ('added_in_favorites',)
     list_filter = ('author', 'name', 'tag',)
+    inlines = (QuantityIngredientInline,)
     empty_value_display = '-пусто-'
 
     @display(description='Количество в избранных')

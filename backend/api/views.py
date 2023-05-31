@@ -8,9 +8,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (
+    IsAuthenticatedOrReadOnly, IsAuthenticated)
 from rest_framework.response import Response
-
 from .filters import IngredientSearchFilter, RecipeFilter
 from .paginations import PageNumberPaginationLimit
 from .permissions import IsAdminOrReadOnly, IsAuthorOrReadOnlyPermission
@@ -90,7 +90,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -206,6 +206,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = (IsAdminOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_backends = (IngredientSearchFilter,)
     search_fields = ('^name',)

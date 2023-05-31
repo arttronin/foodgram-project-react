@@ -16,16 +16,14 @@ class TagSerializer(ModelSerializer):
     """Сериализатор для вывода тэгов."""
     class Meta:
         model = Tag
-        fields = "__all__"
-        read_only_fields = ("__all__",)
+        fields = ('name', 'color', 'slug')
 
 
 class IngredientSerializer(ModelSerializer):
     """Сериализатор для вывода ингредиентов."""
     class Meta:
         model = Ingredient
-        fields = "__all__"
-        read_only_fields = ("__all__",)
+        fields = ('name', 'measurement_unit')
 
 
 class CustomUserSerializer(UserSerializer):
@@ -132,20 +130,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             'name', 'image', 'text', 'cooking_time',
         )
 
-    @staticmethod
-    def create_ingredients(recipe, ingredients):
-        """Добавление ингредиентов в рецепт."""
-        objs = (
-            QuantityIngredient(
-                recipe=recipe,
-                ingredient=get_object_or_404(
-                    Ingredient, id=ingredient.get('id')
-                ),
-                amount=ingredient.get('amount')
-            ) for ingredient in ingredients
-        )
-        QuantityIngredient.objects.bulk_create(objs)
-
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -158,8 +142,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         super().update(instance, validated_data)
+        instance.tags.clear()
         instance.tags.set(tags)
-        QuantityIngredient.objects.filter(recipe=instance).delete()
+        instance.ingredients.clear()
         self.create_ingredients(instance, ingredients)
         return instance
 
@@ -169,35 +154,25 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             context={'request': self.context.get('request')}
         ).data
 
-    def validate_ingredients(self, ingredients):
-        if ingredients is None:
+    def validate_ingredients(self, value):
+        ingredients = value
+        if not ingredients:
             raise serializers.ValidationError(
-                'Список ингредиентов отсутствует.'
+                'Нужен хотя бы один ингредиент!'
             )
-
-        if len(ingredients) == 0:
-            raise serializers.ValidationError(
-                'Список ингредиентов пустой.'
-            )
-
-        id_ingredients = [ingredient.get('id') for ingredient in ingredients]
-        if len(set(id_ingredients)) < len(id_ingredients):
-            raise serializers.ValidationError(
-                'Выбрано два одинаковых ингредиента.'
-            )
-
-        for ingredient in ingredients:
-            amount = ingredient.get('amount')
-            if isinstance(amount, str) and not amount.isdigit():
+        ingredients_list = []
+        for item in ingredients:
+            ingredient = get_object_or_404(Ingredient, id=item["id"])
+            if ingredient in ingredients_list:
                 raise serializers.ValidationError(
-                    'Количество ингредиентов должно быть положительным числом.'
+                    'Ингридиенты не могут повторяться!'
                 )
-            if int(ingredient.get('amount')) <= 0:
+            if int(item["amount"]) <= 0:
                 raise serializers.ValidationError(
-                    'Количество ингредиентов не может быть меньше/равно нулю.'
+                    'Количество ингредиента должно быть больше 0!'
                 )
-
-        return ingredients
+            ingredients_list.append(ingredient)
+        return value
 
     def validate_tags(self, tags):
         if tags is None:
