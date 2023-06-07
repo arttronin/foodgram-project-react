@@ -57,6 +57,6 @@ class FavoriteRecipeAdmin(admin.ModelAdmin):
 @admin.register(QuantityIngredient)
 class QuantityIngredientAdmin(admin.ModelAdmin):
     """Отображение модели кол-ва ингредиентов в админке"""
-    list_display = ('recipe', 'ingredient', 'amount',)
+    list_display = ('recipe', 'ingredient', 'amount')
     search_fields = ('recipe', 'ingredient')
     list_filter = ('recipe', 'ingredient')

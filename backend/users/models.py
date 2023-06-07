@@ -10,8 +10,6 @@ class User(AbstractUser):
         max_length=200,
         unique=True,
     )
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
@@ -46,6 +44,6 @@ class Follow(models.Model):
         verbose_name_plural = 'Подписки'
         constraints = [
             UniqueConstraint(
-                fields=['user'], name='unique_favorite'
+                fields=['user', 'author'], name='unique_favorite'
             )
         ]
