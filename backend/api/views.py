@@ -33,55 +33,49 @@ class CustomUserViewSet(UserViewSet):
     текущего пользователя.
     Подписки пользователя, подписаться на пользователя, удалить подписку
     """
-
     queryset = User.objects.all()
     serializer_class = CustomUserSerializer
-    permission_classes = (IsAdminOrReadOnly,)
     pagination_class = PageNumberPaginationLimit
 
-    @action(
-        url_path='subscriptions',
-        methods=['get'],
-        detail=False,
-        permission_classes=(IsAuthenticated,),
-    )
-    def get_subscriptions(self, response):
-        """Подписки пользователя."""
-        limit = self.request.query_params.get('recipes_limit')
-        pages = self.paginate_queryset(
-            User.objects.filter(author__user=self.request.user)
-        )
-        serializer = FollowUserSerializer(pages, many=True)
-        if limit:
-            for user in serializer.data:
-                if user.get('recipes'):
-                    user['recipes'] = user.get('recipes')[:int(limit)]
-
+    @action(detail=False,
+            methods=['get'],
+            permission_classes=[IsAuthenticated])
+    def subscriptions(self, request):
+        user = request.user
+        queryset = User.objects.filter(following__user=user)
+        page = self.paginate_queryset(queryset)
+        serializer = FollowUserSerializer(
+            page, many=True, context={'request': request})
         return self.get_paginated_response(serializer.data)
 
-    @action(
-        url_path='subscribe',
-        methods=['post', 'delete'],
-        detail=True,
-        permission_classes=(IsAuthenticated,)
-    )
-    def get_subscribe(self, request, id):
-        """Подписаться на автора, удалить подписку."""
-        attrs = {
-            'user': request.user,
-            'author': get_object_or_404(User, pk=id)
-        }
+    @action(detail=True,
+            methods=['post', 'delete'],
+            permission_classes=[IsAuthenticated])
+    def subscribe(self, request, id):
+        user = request.user
+        author = get_object_or_404(User, id=id)
 
         if request.method == 'POST':
-            if attrs.get('user') == attrs.get('author'):
-                return Response(
-                    {'errors': 'Нельзя подписаться на себя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            return create_obj(attrs, Follow, FollowUserSerializer)
-        if request.method == 'DELETE':
-            return delete_obj(attrs, Follow)
+            if user.id == author.id:
+                return Response({'detail': 'Нельзя подписаться на себя'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if Follow.objects.filter(author=author, user=user).exists():
+                return Response({'detail': 'Вы уже подписаны!'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            Follow.objects.create(user=user, author=author)
+            serializer = FollowUserSerializer(author,
+                                              context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        if request.method == 'DELETE':
+            if not Follow.objects.filter(user=user, author=author).exists():
+                return Response({'errors': 'Вы не подписаны'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            subscription = get_object_or_404(Follow,
+                                             user=user,
+                                             author=author)
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 

@@ -15,12 +15,13 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
-        ordering = ['id']
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-
-    def __str__(self):
-        return self.username
+        ordering = ('pk',)
+        constraints = (
+            models.UniqueConstraint(fields=('email', 'username'),
+                                    name='unique_auth'),
+        )
 
 
 class Follow(models.Model):
