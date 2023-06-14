@@ -1,35 +1,50 @@
-from rest_framework import status
-from rest_framework.response import Response
-from recipes.models import FavoriteRecipe, ShoppingList
-from users.models import Follow
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+from api.serializers import RecipeIngredients
 
 
-def create_obj(attrs, model, serializer):
-    """Создание записей в таблицах FavoriteRecipe, Follow, ShoppingList."""
-    model_attr = {
-        Follow: 'author',
-        FavoriteRecipe: 'recipe',
-        ShoppingList: 'recipe'
-    }
-
-    if model.objects.filter(**attrs).exists():
-        return Response(
-            {'errors': 'Запись уже существует.'},
-            status=status.HTTP_400_BAD_REQUEST
+def download_cart(request):
+    ingredients = RecipeIngredients.objects.filter(
+        recipe__shopping__user=request.user).values_list(
+        'ingredient__name', 'ingredient__measurement_unit',
+        'amount')
+    cart_list = {}
+    for item in ingredients:
+        name = item[0]
+        if name not in cart_list:
+            cart_list[name] = {
+                'measurement_unit': item[1],
+                'amount': item[2]}
+        else:
+            cart_list[name]['amount'] += item[2]
+    height = 700
+    buffer = BytesIO()
+    pdfmetrics.registerFont(TTFont('arial', 'static/arial.ttf'))
+    page = canvas.Canvas(buffer)
+    page.setFont('arial', 13)
+    page.drawString(100, 750, "Список покупок")
+    for i, (name, data) in enumerate(cart_list.items(), start=1):
+        page.drawString(
+            80, height, f"{i}. {name} – {data['amount']} {
+                data['measurement_unit']}"
         )
-    model.objects.create(**attrs)
-    return Response(
-        serializer(attrs.get(model_attr[model])).data,
-        status=status.HTTP_201_CREATED
-    )
+        height -= 25
+    page.showPage()
+    page.save()
+    buffer.seek(0)
+    return FileResponse(buffer, as_attachment=True, filename='shopping_list.pdf')
 
 
-def delete_obj(attrs, model):
-    """Удаление записей из таблиц FavoriteRecipe, Follow, ShoppingList."""
-    if not model.objects.filter(**attrs):
-        return Response(
-            {'errors': 'Запись отсутствует.'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    model.objects.get(**attrs).delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+
+
+
+
+
+

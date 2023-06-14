@@ -1,18 +1,18 @@
+from api.validators import validate_username
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import UniqueConstraint
 
 
 class User(AbstractUser):
-    """Класс модели пользователя"""
-    email = models.EmailField(
-        'Email',
-        max_length=200,
-        unique=True,
-    )
+    '''Модель пользователя.'''
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+
+    email = models.EmailField(verbose_name='Почта',
+                              max_length=254,
+                              unique=True)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -23,28 +23,30 @@ class User(AbstractUser):
                                     name='unique_auth'),
         )
 
+    def __str__(self):
+        return self.username
+
 
 class Follow(models.Model):
-    """Класс подписки пользователей"""
-    user = models.ForeignKey(
-        User,
-        related_name='follower',
-        verbose_name="Подписчик",
-        on_delete=models.CASCADE,
-    )
-    author = models.ForeignKey(
-        User,
-        related_name='following',
-        verbose_name="Автор",
-        on_delete=models.CASCADE,
-    )
+    '''Модель подписок'''
+
+    user = models.ForeignKey(User,
+                             verbose_name='Подписчик',
+                             on_delete=models.CASCADE,
+                             related_name='follower')
+    author = models.ForeignKey(User,
+                               verbose_name='Автор',
+                               on_delete=models.CASCADE,
+                               related_name='following')
 
     class Meta:
-        ordering = ['-id']
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
-        constraints = [
-            UniqueConstraint(
-                fields=['user', 'author'], name='unique_favorite'
-            )
-        ]
+        verbose_name = 'Подписчик'
+        verbose_name_plural = 'Подписчики'
+        ordering = ('-pk',)
+        constraints = (
+            UniqueConstraint(fields=('user', 'author'),
+                             name='unique_subscription'),
+        )
+
+    def __str__(self):
+        return self.user
